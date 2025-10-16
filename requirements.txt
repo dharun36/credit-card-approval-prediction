@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+jinja2
+numpy
+scikit-learn
+python-multipart
+pydantic<2.0.0
+python-jose
+python-dotenv
+starlette
+aiofiles
