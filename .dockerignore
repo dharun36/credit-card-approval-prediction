@@ -1,0 +1,30 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+venv/
+.env/
+.build/
+dist/
+.gitlab-ci.yml
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
+*.sqlite3
+*.db
+*.log
+*.pot
+*.pyc
+*.pyo
+instance/
+tests/
+
+# model and data (optionally include if you want them in the image)
+# best_model.pkl
+# clean_dataset.csv
