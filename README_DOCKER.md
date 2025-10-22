@@ -1,35 +1,82 @@
-# Docker instructions for Credit Card Approval Predictor
+# Docker + Render deployment guide
 
-This file explains how to build and run the application using Docker.
+This project runs a FastAPI app for credit card approval predictions. Below are copy‑ready steps to run it locally with Docker and deploy it to Render using the existing `DockerFile`.
 
-## Build the Docker image
+## Local: build and run with Docker
 
-```bash
-# from repository root
+```powershell
+# From repo root
 docker build -t credit-card-approval:latest -f DockerFile .
-```
-
-## Run the container
-
-```bash
 docker run --rm -p 8000:8000 credit-card-approval:latest
 ```
 
-The API will be available at `http://localhost:8000`. The FastAPI docs will be at `/docs`.
+Open http://localhost:8000 for the app and http://localhost:8000/docs for the API docs.
 
-## Using docker-compose (development)
+Notes
+- The image runs `uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}` so it binds to port 8000 locally and to the `PORT` env var in cloud.
+- If your model files are large, see the “Model files” section below.
 
-```bash
+## Local: docker-compose for development
+
+```powershell
 docker-compose up --build
 ```
 
-This mounts the repository into the container for live edits. Remove the volume for production.
+What this does
+- Builds the same image using `DockerFile`.
+- Mounts the project directory into `/app` for live reloading.
+- Runs `uvicorn` with `--reload` on port 8000.
 
-## Notes for deployment platforms
+Stop with Ctrl+C, or in another terminal:
 
-- Render: You can supply a Dockerfile in the repo and select the Docker environment when creating a new service.
-- Heroku: Use container registry (but Render is preferred as discussed).
+```powershell
+docker-compose down
+```
+
+## Deploy to Render (Docker Web Service)
+
+Prerequisites
+- Your repo is pushed to GitHub (this repo already contains `DockerFile`).
+
+Steps
+1. In the Render dashboard, click New > Web Service.
+2. Connect your GitHub account and select the repository.
+3. Select the branch to deploy (e.g., `dockerize` or `main`).
+4. Runtime: choose Docker.
+5. Root directory: `/` (repo root).
+6. Dockerfile path: `DockerFile` (exact name as in this repo).
+7. Auto Deploy: enable if you want every push to deploy.
+8. Instance type: choose Free (for testing) or a paid plan.
+9. Click Create Web Service.
+
+Render specifics
+- Port: Render sets an environment variable `PORT` (commonly 10000). Our image uses `--port ${PORT:-8000}`, so it will bind correctly on Render without extra config.
+- Health: Once deployed, Render will show your service URL. Your FastAPI docs will be at `/docs`.
+
+Optional settings
+- Environment variables: Add any secrets or config here. None are required by default for this app.
+- Build / Start commands: Leave empty for Docker services; the Dockerfile defines them.
+- Auto-scaling: Configure as needed.
 
 ## Model files
 
-If your `best_model.pkl` is large, consider storing it in an object store and downloading it at container start, or include it in the image explicitly depending on your security and size preferences.
+This repo already includes `best_model.pkl`. The app tries to load `scaler.pkl` too; if it’s missing, a default StandardScaler is used (you’ll see a warning in logs). If you want to use a custom scaler:
+- Add `scaler.pkl` to the repo (kept small), or
+- Download it at container start (e.g., from cloud storage) in an entrypoint script, or
+- Mount it with a volume for local dev: `-v ${PWD}:/app`.
+
+## Quick commands
+
+```powershell
+# Build
+docker build -t credit-card-approval:latest -f DockerFile .
+
+# Run
+docker run --rm -p 8000:8000 credit-card-approval:latest
+
+# Logs (follow)
+docker logs -f <container_id>
+
+# Stop all
+docker stop $(docker ps -q)
+```
