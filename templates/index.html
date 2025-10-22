@@ -195,14 +195,14 @@
         const predictionText = document.getElementById("predictionText");
 
         resultDiv.style.display = "block";
-        
+
         // Handle validation errors (400)
         if (!response.ok) {
           resultDiv.className = "prediction rejected";
           predictionText.innerHTML = `❌ <strong>Validation Error:</strong><br>${result.detail || 'Invalid input data. Please check your values.'}`;
           return;
         }
-        
+
         // Handle successful predictions
         if (result.approval) {
           resultDiv.className = "prediction approved";
