@@ -76,8 +76,7 @@ jobs:
     name: Deploy to Render
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: false  # Temporarily disabled - enable after local testing
-    # if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dockerize')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dockerize')
     
     steps:
       - name: Trigger Render deployment
