@@ -116,8 +116,8 @@
         </div>
 
         <div class="form-group">
-          <label for="credit_score">Credit Score</label>
-          <input type="number" id="credit_score" name="CreditScore" required min="00" max="850">
+          <label for="credit_score">Credit Score (300-850)</label>
+          <input type="number" id="credit_score" name="CreditScore" required min="300" max="850">
         </div>
 
         <div class="form-group">
@@ -143,8 +143,8 @@
           <label for="prior_default">Prior Default History</label>
           <select id="prior_default" name="PriorDefault" required>
             <option value="">Select</option>
-            <option value="1">No previous defaults</option>
-            <option value="0">Has previous defaults</option>
+            <option value="0">No previous defaults</option>
+            <option value="1">Has previous defaults</option>
           </select>
         </div>
       </div>
@@ -195,13 +195,22 @@
         const predictionText = document.getElementById("predictionText");
 
         resultDiv.style.display = "block";
+        
+        // Handle validation errors (400)
+        if (!response.ok) {
+          resultDiv.className = "prediction rejected";
+          predictionText.innerHTML = `❌ <strong>Validation Error:</strong><br>${result.detail || 'Invalid input data. Please check your values.'}`;
+          return;
+        }
+        
+        // Handle successful predictions
         if (result.approval) {
           resultDiv.className = "prediction approved";
-          predictionText.innerHTML = ` Congratulations! Your credit card application is likely to be approved.${result.confidence ? ` (Confidence: ${result.confidence})` : ''
+          predictionText.innerHTML = `✅ Congratulations! Your credit card application is likely to be approved.${result.confidence ? ` (Confidence: ${result.confidence})` : ''
             }`;
         } else {
           resultDiv.className = "prediction rejected";
-          predictionText.innerHTML = ` Sorry, your credit card application might not be approved at this time.${result.confidence ? ` (Confidence: ${result.confidence})` : ''
+          predictionText.innerHTML = `❌ Sorry, your credit card application might not be approved at this time.${result.confidence ? ` (Confidence: ${result.confidence})` : ''
             }`;
         }
       } catch (error) {
