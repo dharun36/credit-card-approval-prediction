@@ -6,7 +6,7 @@ This project runs a FastAPI app for credit card approval predictions. Below are 
 
 ```powershell
 # From repo root
-docker build -t credit-card-approval:latest -f DockerFile .
+docker build -t credit-card-approval:latest -f Dockerfile .
 docker run --rm -p 8000:8000 credit-card-approval:latest
 ```
 
@@ -23,7 +23,7 @@ docker-compose up --build
 ```
 
 What this does
-- Builds the same image using `DockerFile`.
+- Builds the same image using `Dockerfile`.
 - Mounts the project directory into `/app` for live reloading.
 - Runs `uvicorn` with `--reload` on port 8000.
 
@@ -44,7 +44,7 @@ Steps
 3. Select the branch to deploy (e.g., `dockerize` or `main`).
 4. Runtime: choose Docker.
 5. Root directory: `/` (repo root).
-6. Dockerfile path: `DockerFile` (exact name as in this repo).
+6. Dockerfile path: `Dockerfile` (standard Docker naming).
 7. Auto Deploy: enable if you want every push to deploy.
 8. Instance type: choose Free (for testing) or a paid plan.
 9. Click Create Web Service.
@@ -69,7 +69,7 @@ This repo already includes `best_model.pkl`. The app tries to load `scaler.pkl` 
 
 ```powershell
 # Build
-docker build -t credit-card-approval:latest -f DockerFile .
+docker build -t credit-card-approval:latest -f Dockerfile .
 
 # Run
 docker run --rm -p 8000:8000 credit-card-approval:latest

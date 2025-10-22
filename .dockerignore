@@ -23,7 +23,15 @@ __pycache__/
 *.pyc
 *.pyo
 instance/
+.github/
+*.ipynb
+*.md
+!README.md
+
+# CI/CD and development files
 tests/
+pytest.ini
+.coverage
 
 # model and data (optionally include if you want them in the image)
 # best_model.pkl

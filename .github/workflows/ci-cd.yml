@@ -1,0 +1,110 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, dockerize]
+  pull_request:
+    branches: [main, dockerize]
+
+env:
+  DOCKER_IMAGE: credit-card-approval
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Continuous Integration: Build and Test
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov httpx
+
+      - name: Lint with flake8 (optional)
+        continue-on-error: true
+        run: |
+          pip install flake8
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run tests with pytest
+        env:
+          LOG_LEVEL: info
+        run: |
+          pytest tests/ -v --cov=. --cov-report=term-missing
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.DOCKER_IMAGE }}:${{ github.sha }} -f Dockerfile .
+          docker build -t ${{ env.DOCKER_IMAGE }}:latest -f Dockerfile .
+
+      - name: Test Docker image
+        run: |
+          # Start container in background
+          docker run -d --name test-container -p 8000:8000 ${{ env.DOCKER_IMAGE }}:latest
+          
+          # Wait for container to be healthy
+          sleep 10
+          
+          # Test health endpoint
+          curl -f http://localhost:8000/docs || exit 1
+          
+          # Stop and remove container
+          docker stop test-container
+          docker rm test-container
+
+      - name: Docker image info
+        run: |
+          docker images | grep ${{ env.DOCKER_IMAGE }}
+
+  # Continuous Deployment: Deploy to Render
+  deploy:
+    name: Deploy to Render
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dockerize')
+    
+    steps:
+      - name: Trigger Render deployment
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "⚠️  RENDER_DEPLOY_HOOK_URL secret not set. Skipping deployment."
+            echo "ℹ️  To enable auto-deploy, add RENDER_DEPLOY_HOOK_URL to GitHub Secrets."
+            exit 0
+          fi
+          
+          echo "🚀 Triggering Render deployment..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }})
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
+            echo "✅ Render deployment triggered successfully (HTTP $HTTP_CODE)"
+          else
+            echo "❌ Render deployment failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Deployment notification
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎯 DEPLOYMENT SUMMARY"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🌿 Branch:  ${{ github.ref_name }}"
+          echo "📝 Commit:  ${{ github.sha }}"
+          echo "👤 Author:  ${{ github.actor }}"
+          echo "📅 Time:    $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
