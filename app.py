@@ -155,32 +155,22 @@ async def home(request: Request):
     })
 
 @app.post("/predict")
-async def predict(request: Request):
+async def predict(data: CreditApplication):
+    """
+    Predict credit card approval based on application data.
+    FastAPI automatically validates the request body against the CreditApplication model.
+    """
     try:
-        # Get JSON data from request
-        data = await request.json()
-        
-        # Create features list from JSON data
+        # Create features list from validated data
         features = [
-            int(data['PriorDefault']),
-            float(data['CreditScore']),
-            float(data['YearsEmployed']),
-            float(data['Income']),
-            int(data['Employed']),
-            float(data['Debt']),
-            int(data['Age'])
+            data.PriorDefault,
+            data.CreditScore,
+            data.YearsEmployed,
+            data.Income,
+            data.Employed,
+            data.Debt,
+            data.Age
         ]
-        
-        # Validate input using pydantic model
-        application = CreditApplication(
-            PriorDefault=features[0],
-            CreditScore=features[1],
-            YearsEmployed=features[2],
-            Income=features[3],
-            Employed=features[4],
-            Debt=features[5],
-            Age=features[6]
-        )
         
         # Scale the features
         scaled_features = scale_features(features)
@@ -206,9 +196,9 @@ async def predict(request: Request):
             
         return response
         
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
+        # Log unexpected errors for debugging
+        logging.error(f"Unexpected error in /predict: {str(e)}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again.")
 
 if __name__ == "__main__":
