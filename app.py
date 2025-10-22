@@ -6,9 +6,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import uvicorn
 import os
+import logging
 
 class CreditApplication(BaseModel):
     PriorDefault: int
@@ -19,8 +20,9 @@ class CreditApplication(BaseModel):
     Debt: float
     Age: int
 
-    class Config:
-        schema_extra = {
+    # Pydantic v2 configuration and example
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "PriorDefault": 1,
                 "CreditScore": 700,
@@ -28,47 +30,48 @@ class CreditApplication(BaseModel):
                 "Income": 50000.0,
                 "Employed": 1,
                 "Debt": 15000.0,
-                "Age": 35
+                "Age": 35,
             }
         }
+    )
 
-    @validator('PriorDefault')
+    @field_validator('PriorDefault')
     def validate_prior_default(cls, v):
         if v not in [0, 1]:
             raise ValueError('Prior default must be 0 or 1')
         return v
 
-    @validator('CreditScore')
+    @field_validator('CreditScore')
     def validate_credit_score(cls, v):
         if not 300 <= v <= 850:
             raise ValueError('Credit score must be between 300 and 850')
         return v
 
-    @validator('YearsEmployed')
+    @field_validator('YearsEmployed')
     def validate_years_employed(cls, v):
         if v < 0:
             raise ValueError('Years employed cannot be negative')
         return v
 
-    @validator('Income')
+    @field_validator('Income')
     def validate_income(cls, v):
         if v < 0:
             raise ValueError('Income cannot be negative')
         return v
 
-    @validator('Employed')
+    @field_validator('Employed')
     def validate_employed(cls, v):
         if v not in [0, 1]:
             raise ValueError('Employed must be 0 or 1')
         return v
 
-    @validator('Debt')
+    @field_validator('Debt')
     def validate_debt(cls, v):
         if v < 0:
             raise ValueError('Debt cannot be negative')
         return v
 
-    @validator('Age')
+    @field_validator('Age')
     def validate_age(cls, v):
         if not 18 <= v <= 120:
             raise ValueError('Age must be between 18 and 120')
@@ -81,11 +84,29 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+# Logging level via LOG_LEVEL env (default INFO)
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+
+# Allow overriding CORS origins with env var ALLOWED_ORIGINS (comma-separated)
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+_default_origins = ["http://localhost:8000", "http://127.0.0.1:8000"]
+_allowed_origins = (
+    [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+    if _allowed_origins_env else _default_origins
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 # Add CORS middleware with more specific settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000","http://0.0.0.0:8000/","*"],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
