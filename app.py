@@ -103,15 +103,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add CORS middleware with more specific settings
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000","http://0.0.0.0:8000/","*"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -121,14 +112,15 @@ from sklearn.exceptions import InconsistentVersionWarning
 
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 
-# Load the scaler
+# Load the scaler (path configurable via SCALER_PATH)
+scaler_path = os.getenv("SCALER_PATH", "scaler.pkl")
 try:
-    with open('scaler.pkl', 'rb') as scaler_file:
+    with open(scaler_path, 'rb') as scaler_file:
         scaler = pickle.load(scaler_file)
 except Exception as e:
-    print(f"Error loading scaler: {e}")
-    # If scaler is not found, create a new StandardScaler
+    # If scaler is not found, create a new StandardScaler (will be pass-through)
     from sklearn.preprocessing import StandardScaler
+    logging.warning(f"Scaler not found at '{scaler_path}': {e}. Using pass-through scaling.")
     scaler = StandardScaler()
 
 # Function to scale the features
@@ -136,12 +128,23 @@ def scale_features(features):
     features_array = np.array(features).reshape(1, -1)
     return scaler.transform(features_array) if hasattr(scaler, 'mean_') else features_array
 
+# Load the model (path configurable via MODEL_PATH)
+model_path = os.getenv("MODEL_PATH", "best_model.pkl")
 try:
-    with open('best_model.pkl', 'rb') as model_file:
+    with open(model_path, 'rb') as model_file:
         model = pickle.load(model_file)
 except Exception as e:
-    print(f"Error loading model: {e}")
-    raise HTTPException(status_code=500, detail="Model initialization failed")
+    logging.error(f"Error loading model from '{model_path}': {e}")
+    raise RuntimeError(f"Model initialization failed: {e}")
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {
+        "status": "healthy",
+        "model_loaded": model is not None,
+        "scaler_loaded": hasattr(scaler, 'mean_')
+    }
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
