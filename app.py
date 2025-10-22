@@ -185,7 +185,9 @@ async def predict(request: Request):
         # Scale the features
         scaled_features = scale_features(features)
         prediction = model.predict(scaled_features)
-        
+        logging.info(f"Prediction: {prediction}")
+
+
         # Get prediction probability if model supports it
         probability = None
         try:
