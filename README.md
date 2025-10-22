@@ -605,7 +605,7 @@ PORT=8000
 HOST=0.0.0.0
 LOG_LEVEL=info
 
-# CORS Configuration
+# CORS Configuration - comma seperated
 ALLOWED_ORIGINS=*
 
 # Model Configuration
